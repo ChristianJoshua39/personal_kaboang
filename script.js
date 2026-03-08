@@ -136,6 +136,12 @@ function updateCurrentReadings(data) {
     // Update last update time
     const time = new Date(data.recorded_at).toLocaleString();
     document.getElementById('lastUpdate').textContent = `Last update: ${time}`;
+
+    // Update quick stats bar
+    updateQuickStats(temp, humidity);
+
+    // Check for alerts
+    checkAlerts(temp, humidity);
 }
 
 function animateValue(elementId, target, decimals) {
@@ -469,6 +475,109 @@ function updateCharts(data) {
     humidityChart.data.labels = labels;
     humidityChart.data.datasets[0].data = humidities;
     humidityChart.update('active');
+}
+
+// ============================================
+// ALERTS & QUICK STATS
+// ============================================
+function updateQuickStats(temp, humidity) {
+    // Update quick stats bar
+    document.getElementById('quickTemp').textContent = temp ? `${temp}°C` : '--°C';
+    document.getElementById('quickHumidity').textContent = humidity ? `${humidity}%` : '--%';
+    document.getElementById('quickLastUpdate').textContent = new Date().toLocaleTimeString();
+}
+
+function checkAlerts(temp, humidity) {
+    const alerts = [];
+    const now = new Date().toLocaleString();
+
+    // Temperature alerts
+    if (temp >= 35) {
+        alerts.push({
+            type: 'danger',
+            icon: 'fas fa-thermometer-full',
+            text: `Critical: Temperature is ${temp}°C (too hot!)`,
+            time: now
+        });
+    } else if (temp >= 30) {
+        alerts.push({
+            type: 'warning',
+            icon: 'fas fa-thermometer-three-quarters',
+            text: `Warning: Temperature is ${temp}°C (very warm)`,
+            time: now
+        });
+    } else if (temp <= 10) {
+        alerts.push({
+            type: 'danger',
+            icon: 'fas fa-thermometer-empty',
+            text: `Critical: Temperature is ${temp}°C (too cold!)`,
+            time: now
+        });
+    } else if (temp <= 15) {
+        alerts.push({
+            type: 'warning',
+            icon: 'fas fa-thermometer-quarter',
+            text: `Warning: Temperature is ${temp}°C (cold)`,
+            time: now
+        });
+    }
+
+    // Humidity alerts
+    if (humidity >= 80) {
+        alerts.push({
+            type: 'danger',
+            icon: 'fas fa-tint',
+            text: `Critical: Humidity is ${humidity}% (too humid!)`,
+            time: now
+        });
+    } else if (humidity >= 70) {
+        alerts.push({
+            type: 'warning',
+            icon: 'fas fa-tint',
+            text: `Warning: Humidity is ${humidity}% (high humidity)`,
+            time: now
+        });
+    } else if (humidity <= 20) {
+        alerts.push({
+            type: 'danger',
+            icon: 'fas fa-tint-slash',
+            text: `Critical: Humidity is ${humidity}% (too dry!)`,
+            time: now
+        });
+    } else if (humidity <= 30) {
+        alerts.push({
+            type: 'warning',
+            icon: 'fas fa-tint-slash',
+            text: `Warning: Humidity is ${humidity}% (dry air)`,
+            time: now
+        });
+    }
+
+    // Update alert count
+    document.getElementById('alertCount').textContent = alerts.length;
+
+    // Show/hide alerts section
+    const alertsSection = document.getElementById('alertsSection');
+    const alertContent = document.getElementById('alertContent');
+
+    if (alerts.length > 0) {
+        alertContent.innerHTML = alerts.map(alert => `
+            <div class="alert-item ${alert.type}">
+                <i class="${alert.icon}"></i>
+                <div class="alert-text">${alert.text}</div>
+                <div class="alert-time">${alert.time}</div>
+            </div>
+        `).join('');
+        alertsSection.style.display = 'block';
+    } else {
+        alertsSection.style.display = 'none';
+    }
+
+    return alerts.length;
+}
+
+function hideAlerts() {
+    document.getElementById('alertsSection').style.display = 'none';
 }
 
 // ============================================

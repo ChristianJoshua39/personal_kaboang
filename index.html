@@ -30,56 +30,100 @@
         </div>
     </header>
 
+    <!-- Quick Stats Bar -->
+    <section class="quick-stats">
+        <div class="stats-bar">
+            <div class="stat-item">
+                <i class="fas fa-thermometer-half"></i>
+                <span class="stat-label">Current Temp</span>
+                <span class="stat-value" id="quickTemp">--°C</span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-tint"></i>
+                <span class="stat-label">Humidity</span>
+                <span class="stat-value" id="quickHumidity">--%</span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span class="stat-label">Alerts</span>
+                <span class="stat-value" id="alertCount">0</span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-clock"></i>
+                <span class="stat-label">Last Update</span>
+                <span class="stat-value" id="quickLastUpdate">--</span>
+            </div>
+        </div>
+    </section>
+
     <main class="container">
+        <!-- Alert Panel -->
+        <section class="alerts-section" id="alertsSection" style="display: none;">
+            <div class="alert-panel">
+                <div class="alert-header">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>System Alerts</h3>
+                    <button class="alert-close" onclick="hideAlerts()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="alert-content" id="alertContent">
+                    <!-- Alerts will be populated here -->
+                </div>
+            </div>
+        </section>
+
         <!-- Current Readings Cards -->
         <section class="current-readings">
-            <div class="card temperature-card">
-                <div class="card-icon">
-                    <i class="fas fa-thermometer-half"></i>
+            <div class="readings-grid">
+                <div class="card temperature-card">
+                    <div class="card-icon">
+                        <i class="fas fa-thermometer-half"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Temperature</h3>
+                        <div class="card-value" id="currentTemp">--</div>
+                        <div class="card-unit">°C</div>
+                    </div>
+                    <div class="card-gauge">
+                        <div class="gauge-fill" id="tempGauge"></div>
+                    </div>
                 </div>
-                <div class="card-content">
-                    <h3>Temperature</h3>
-                    <div class="card-value" id="currentTemp">--</div>
-                    <div class="card-unit">°C</div>
-                </div>
-                <div class="card-gauge">
-                    <div class="gauge-fill" id="tempGauge"></div>
-                </div>
-            </div>
 
-            <div class="card humidity-card">
-                <div class="card-icon">
-                    <i class="fas fa-tint"></i>
+                <div class="card humidity-card">
+                    <div class="card-icon">
+                        <i class="fas fa-tint"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Humidity</h3>
+                        <div class="card-value" id="currentHumidity">--</div>
+                        <div class="card-unit">%</div>
+                    </div>
+                    <div class="card-gauge">
+                        <div class="gauge-fill" id="humidityGauge"></div>
+                    </div>
                 </div>
-                <div class="card-content">
-                    <h3>Humidity</h3>
-                    <div class="card-value" id="currentHumidity">--</div>
-                    <div class="card-unit">%</div>
-                </div>
-                <div class="card-gauge">
-                    <div class="gauge-fill" id="humidityGauge"></div>
-                </div>
-            </div>
 
-            <div class="card status-card">
-                <div class="card-icon">
-                    <i class="fas fa-info-circle"></i>
+                <div class="card status-card">
+                    <div class="card-icon">
+                        <i class="fas fa-info-circle"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Comfort Level</h3>
+                        <div class="card-value" id="comfortLevel">--</div>
+                        <div class="card-unit" id="comfortEmoji">🌡️</div>
+                    </div>
                 </div>
-                <div class="card-content">
-                    <h3>Comfort Level</h3>
-                    <div class="card-value" id="comfortLevel">--</div>
-                    <div class="card-unit" id="comfortEmoji">🌡️</div>
-                </div>
-            </div>
 
-            <div class="card readings-card">
-                <div class="card-icon">
-                    <i class="fas fa-database"></i>
-                </div>
-                <div class="card-content">
-                    <h3>Total Readings</h3>
-                    <div class="card-value" id="totalReadings">--</div>
-                    <div class="card-unit">records</div>
+                <div class="card readings-card">
+                    <div class="card-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3>Total Readings</h3>
+                        <div class="card-value" id="totalReadings">--</div>
+                        <div class="card-unit">records</div>
+                    </div>
                 </div>
             </div>
         </section>
