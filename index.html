@@ -1,228 +1,231 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Weather Monitoring Dashboard</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Chart.js CDN -->
+
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- Icons -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <i class="fas fa-cloud-sun"></i>
-                <h1>Weather Monitoring Dashboard</h1>
+    <!-- Top Navigation -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <div class="brand">
+                <span class="brand-icon">
+                    <i class="fas fa-cloud-sun"></i>
+                </span>
+                <div class="brand-text">
+                    <span class="brand-title">Weather Monitoring</span>
+                    <span class="brand-subtitle">ESP32 & DHT11</span>
+                </div>
             </div>
-            <div class="header-info">
-                <div class="connection-status" id="connectionStatus">
-                    <span class="status-dot"></span>
-                    <span class="status-text">Connecting...</span>
-                </div>
-                <div class="last-update" id="lastUpdate">
-                    Last update: --
-                </div>
+        </div>
+        <div class="topbar-right">
+            <div class="connection-pill" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">Connecting...</span>
+            </div>
+            <div class="topbar-meta">
+                <span id="lastUpdate">Last update: --</span>
             </div>
         </div>
     </header>
 
-    <!-- Quick Stats Bar -->
-    <section class="quick-stats">
-        <div class="stats-bar">
-            <div class="stat-item">
-                <i class="fas fa-thermometer-half"></i>
-                <span class="stat-label">Current Temp</span>
-                <span class="stat-value" id="quickTemp">--°C</span>
-            </div>
-            <div class="stat-item">
-                <i class="fas fa-tint"></i>
-                <span class="stat-label">Humidity</span>
-                <span class="stat-value" id="quickHumidity">--%</span>
-            </div>
-            <div class="stat-item">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span class="stat-label">Alerts</span>
-                <span class="stat-value" id="alertCount">0</span>
-            </div>
-            <div class="stat-item">
-                <i class="fas fa-clock"></i>
-                <span class="stat-label">Last Update</span>
-                <span class="stat-value" id="quickLastUpdate">--</span>
-            </div>
+    <!-- Quick Summary -->
+    <section class="summary-bar">
+        <div class="summary-item">
+            <div class="summary-label">Current Temperature</div>
+            <div class="summary-value" id="quickTemp">--°C</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Current Humidity</div>
+            <div class="summary-value" id="quickHumidity">--%</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Active Alerts</div>
+            <div class="summary-value" id="alertCount">0</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Last Reading</div>
+            <div class="summary-value" id="quickLastUpdate">--</div>
         </div>
     </section>
 
-    <main class="container">
-        <!-- Alert Panel -->
-        <section class="alerts-section" id="alertsSection" style="display: none;">
-            <div class="alert-panel">
-                <div class="alert-header">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h3>System Alerts</h3>
-                    <button class="alert-close" onclick="hideAlerts()">
-                        <i class="fas fa-times"></i>
+    <!-- Optional Alerts List (auto-filled by JS) -->
+    <section class="alerts" id="alertsSection" style="display: none;">
+        <div class="section-header">
+            <h2>Alerts</h2>
+        </div>
+        <div class="alerts-body" id="alertContent">
+            <!-- JS will render alerts here -->
+        </div>
+    </section>
+
+    <main class="layout">
+        <!-- Left Column: Current Readings & Stats -->
+        <section class="column column-left">
+            <!-- Current Readings -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>Current Readings</h2>
+                </div>
+                <div class="panel-body panel-grid-two">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-label">Temperature</span>
+                            <i class="fas fa-thermometer-half metric-icon temp"></i>
+                        </div>
+                        <div class="metric-main">
+                            <span class="metric-value" id="currentTemp">--</span>
+                            <span class="metric-unit">°C</span>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill temp" id="tempGauge"></div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-label">Humidity</span>
+                            <i class="fas fa-tint metric-icon humidity"></i>
+                        </div>
+                        <div class="metric-main">
+                            <span class="metric-value" id="currentHumidity">--</span>
+                            <span class="metric-unit">%</span>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill humidity" id="humidityGauge"></div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-label">Comfort Level</span>
+                            <i class="fas fa-circle-info metric-icon neutral"></i>
+                        </div>
+                        <div class="metric-main">
+                            <span class="metric-value" id="comfortLevel">--</span>
+                            <span class="metric-unit" id="comfortEmoji">–</span>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-label">Total Readings</span>
+                            <i class="fas fa-database metric-icon neutral"></i>
+                        </div>
+                        <div class="metric-main">
+                            <span class="metric-value" id="totalReadings">--</span>
+                            <span class="metric-unit">records</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Statistics -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>Last 24 Hours Statistics</h2>
+                </div>
+                <div class="panel-body stats-grid">
+                    <div class="stat-box">
+                        <span class="stat-label">Min Temp</span>
+                        <span class="stat-value" id="minTemp">--°C</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Max Temp</span>
+                        <span class="stat-value" id="maxTemp">--°C</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Avg Temp</span>
+                        <span class="stat-value" id="avgTemp">--°C</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Min Humidity</span>
+                        <span class="stat-value" id="minHumidity">--%</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Max Humidity</span>
+                        <span class="stat-value" id="maxHumidity">--%</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Avg Humidity</span>
+                        <span class="stat-value" id="avgHumidity">--%</span>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <!-- Right Column: Charts & Table -->
+        <section class="column column-right">
+            <!-- Charts -->
+            <section class="panel">
+                <div class="panel-header charts-header">
+                    <h2>Historical Data</h2>
+                    <div class="time-filter">
+                        <button class="time-btn" data-hours="1">1H</button>
+                        <button class="time-btn" data-hours="6">6H</button>
+                        <button class="time-btn active" data-hours="24">24H</button>
+                        <button class="time-btn" data-hours="48">48H</button>
+                        <button class="time-btn" data-hours="168">7D</button>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-two">
+                        <div class="chart-block">
+                            <canvas id="temperatureChart"></canvas>
+                        </div>
+                        <div class="chart-block">
+                            <canvas id="humidityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Table -->
+            <section class="panel">
+                <div class="panel-header table-header">
+                    <h2>Recent Readings</h2>
+                    <button class="ghost-btn" id="refreshTable">
+                        <i class="fas fa-rotate-right"></i>
+                        Refresh
                     </button>
                 </div>
-                <div class="alert-content" id="alertContent">
-                    <!-- Alerts will be populated here -->
+                <div class="panel-body table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Temperature (°C)</th>
+                                <th>Humidity (%)</th>
+                                <th>Date & Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr>
+                                <td colspan="4" class="table-placeholder">
+                                    Loading data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-        </section>
-
-        <!-- Current Readings Cards -->
-        <section class="current-readings">
-            <div class="readings-grid">
-                <div class="card temperature-card">
-                    <div class="card-icon">
-                        <i class="fas fa-thermometer-half"></i>
-                    </div>
-                    <div class="card-content">
-                        <h3>Temperature</h3>
-                        <div class="card-value" id="currentTemp">--</div>
-                        <div class="card-unit">°C</div>
-                    </div>
-                    <div class="card-gauge">
-                        <div class="gauge-fill" id="tempGauge"></div>
-                    </div>
-                </div>
-
-                <div class="card humidity-card">
-                    <div class="card-icon">
-                        <i class="fas fa-tint"></i>
-                    </div>
-                    <div class="card-content">
-                        <h3>Humidity</h3>
-                        <div class="card-value" id="currentHumidity">--</div>
-                        <div class="card-unit">%</div>
-                    </div>
-                    <div class="card-gauge">
-                        <div class="gauge-fill" id="humidityGauge"></div>
-                    </div>
-                </div>
-
-                <div class="card status-card">
-                    <div class="card-icon">
-                        <i class="fas fa-info-circle"></i>
-                    </div>
-                    <div class="card-content">
-                        <h3>Comfort Level</h3>
-                        <div class="card-value" id="comfortLevel">--</div>
-                        <div class="card-unit" id="comfortEmoji">🌡️</div>
-                    </div>
-                </div>
-
-                <div class="card readings-card">
-                    <div class="card-icon">
-                        <i class="fas fa-database"></i>
-                    </div>
-                    <div class="card-content">
-                        <h3>Total Readings</h3>
-                        <div class="card-value" id="totalReadings">--</div>
-                        <div class="card-unit">records</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Statistics Section -->
-        <section class="stats-section">
-            <h2><i class="fas fa-chart-bar"></i> Statistics (Last 24 Hours)</h2>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Min Temp</div>
-                    <div class="stat-value temp-cold" id="minTemp">--°C</div>
-                    <i class="fas fa-arrow-down"></i>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Max Temp</div>
-                    <div class="stat-value temp-hot" id="maxTemp">--°C</div>
-                    <i class="fas fa-arrow-up"></i>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Avg Temp</div>
-                    <div class="stat-value" id="avgTemp">--°C</div>
-                    <i class="fas fa-equals"></i>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Min Humidity</div>
-                    <div class="stat-value humidity-low" id="minHumidity">--%</div>
-                    <i class="fas fa-arrow-down"></i>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Max Humidity</div>
-                    <div class="stat-value humidity-high" id="maxHumidity">--%</div>
-                    <i class="fas fa-arrow-up"></i>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Avg Humidity</div>
-                    <div class="stat-value" id="avgHumidity">--%</div>
-                    <i class="fas fa-equals"></i>
-                </div>
-            </div>
-        </section>
-
-        <!-- Charts Section -->
-        <section class="charts-section">
-            <div class="chart-controls">
-                <h2><i class="fas fa-chart-line"></i> Historical Data</h2>
-                <div class="time-buttons">
-                    <button class="time-btn" data-hours="1">1H</button>
-                    <button class="time-btn" data-hours="6">6H</button>
-                    <button class="time-btn active" data-hours="24">24H</button>
-                    <button class="time-btn" data-hours="48">48H</button>
-                    <button class="time-btn" data-hours="168">7D</button>
-                </div>
-            </div>
-
-            <div class="charts-grid">
-                <div class="chart-container">
-                    <canvas id="combinedChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <canvas id="temperatureChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <canvas id="humidityChart"></canvas>
-                </div>
-            </div>
-        </section>
-
-        <!-- Data Table Section -->
-        <section class="table-section">
-            <div class="table-header">
-                <h2><i class="fas fa-table"></i> Recent Readings</h2>
-                <button class="refresh-btn" id="refreshTable">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
-            </div>
-            <div class="table-wrapper">
-                <table id="dataTable">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Temperature (°C)</th>
-                            <th>Humidity (%)</th>
-                            <th>Date & Time</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        <tr>
-                            <td colspan="4" class="no-data">Loading data...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="pagination" id="pagination"></div>
+                <div class="panel-footer pagination" id="pagination"></div>
+            </section>
         </section>
     </main>
 
-    <!-- Footer -->
     <footer class="footer">
-        <p>ESP32 + DHT11 Weather Monitoring System &copy; 2026</p>
+        <span>ESP32 + DHT11 Weather Monitoring &copy; 2026</span>
     </footer>
 
     <script src="script.js"></script>

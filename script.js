@@ -5,7 +5,7 @@ const API_BASE = 'api';
 const REFRESH_INTERVAL = 10000; // 10 seconds
 let currentHours = 24;
 let currentPage = 1;
-let combinedChart, temperatureChart, humidityChart;
+let temperatureChart, humidityChart;
 
 // ============================================
 // INITIALIZATION
@@ -55,6 +55,7 @@ async function fetchLatestData() {
 
         if (result.status === 'success' && result.data) {
             updateCurrentReadings(result.data);
+            updateQuickStats(result.data);
             updateConnectionStatus('online');
         } else {
             updateConnectionStatus('offline');
@@ -133,12 +134,12 @@ function updateCurrentReadings(data) {
     // Update comfort level
     updateComfortLevel(temp, humidity);
 
-    // Update last update time
+   // Update last update time
     const time = new Date(data.recorded_at).toLocaleString();
     document.getElementById('lastUpdate').textContent = `Last update: ${time}`;
 
     // Update quick stats bar
-    updateQuickStats(temp, humidity);
+    updateQuickStats(data);
 
     // Check for alerts
     checkAlerts(temp, humidity);
@@ -311,67 +312,6 @@ function initCharts() {
         }
     };
 
-    // Combined Chart
-    const ctxCombined = document.getElementById('combinedChart').getContext('2d');
-    combinedChart = new Chart(ctxCombined, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [
-                {
-                    label: 'Temperature (°C)',
-                    data: [],
-                    borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 2,
-                    pointHoverRadius: 6,
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Humidity (%)',
-                    data: [],
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 2,
-                    pointHoverRadius: 6,
-                    yAxisID: 'y1'
-                }
-            ]
-        },
-        options: {
-            ...chartOptions,
-            plugins: {
-                ...chartOptions.plugins,
-                title: {
-                    display: true,
-                    text: 'Temperature & Humidity Combined',
-                    color: '#f1f5f9',
-                    font: { size: 14, weight: '600' }
-                }
-            },
-            scales: {
-                ...chartOptions.scales,
-                y: {
-                    ...chartOptions.scales.y,
-                    position: 'left',
-                    title: { display: true, text: 'Temperature (°C)', color: '#ef4444' }
-                },
-                y1: {
-                    position: 'right',
-                    ticks: { color: '#64748b' },
-                    grid: { drawOnChartArea: false },
-                    title: { display: true, text: 'Humidity (%)', color: '#3b82f6' }
-                }
-            }
-        }
-    });
-
     // Temperature Chart
     const ctxTemp = document.getElementById('temperatureChart').getContext('2d');
     temperatureChart = new Chart(ctxTemp, {
@@ -460,12 +400,6 @@ function updateCharts(data) {
     const temps = data.map(d => parseFloat(d.temperature));
     const humidities = data.map(d => parseFloat(d.humidity));
 
-    // Update Combined Chart
-    combinedChart.data.labels = labels;
-    combinedChart.data.datasets[0].data = temps;
-    combinedChart.data.datasets[1].data = humidities;
-    combinedChart.update('active');
-
     // Update Temperature Chart
     temperatureChart.data.labels = labels;
     temperatureChart.data.datasets[0].data = temps;
@@ -480,11 +414,28 @@ function updateCharts(data) {
 // ============================================
 // ALERTS & QUICK STATS
 // ============================================
-function updateQuickStats(temp, humidity) {
-    // Update quick stats bar
-    document.getElementById('quickTemp').textContent = temp ? `${temp}°C` : '--°C';
-    document.getElementById('quickHumidity').textContent = humidity ? `${humidity}%` : '--%';
-    document.getElementById('quickLastUpdate').textContent = new Date().toLocaleTimeString();
+function updateQuickStats(data) {
+    const temp = parseFloat(data.temperature);
+    const humidity = parseFloat(data.humidity);
+    const time = new Date(data.recorded_at).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const quickTempEl = document.getElementById('quickTemp');
+    const quickHumidityEl = document.getElementById('quickHumidity');
+    const quickLastUpdateEl = document.getElementById('quickLastUpdate');
+    const alertCountEl = document.getElementById('alertCount');
+
+    if (quickTempEl) quickTempEl.textContent = `${temp.toFixed(1)}°C`;
+    if (quickHumidityEl) quickHumidityEl.textContent = `${humidity.toFixed(1)}%`;
+    if (quickLastUpdateEl) quickLastUpdateEl.textContent = time;
+
+    // simple alert count
+    let alerts = 0;
+    if (temp > 35) alerts++;
+    if (humidity > 80) alerts++;
+    if (alertCountEl) alertCountEl.textContent = alerts.toString();
 }
 
 function checkAlerts(temp, humidity) {
