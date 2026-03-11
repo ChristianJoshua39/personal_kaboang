@@ -9,6 +9,22 @@ require_once '../config/database.php';
 $temperature = null;
 $humidity = null;
 
+// handle CSV export request first
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['export']) && strtolower($_GET['export']) === 'csv') {
+    $conn = getConnection();
+    $result = $conn->query("SELECT id, temperature, humidity, recorded_at FROM sensor_data ORDER BY recorded_at DESC");
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="sensor_data.csv"');
+    $output = fopen('php://output', 'w');
+    fputcsv($output, ['id', 'temperature', 'humidity', 'recorded_at']);
+    while ($row = $result->fetch_assoc()) {
+        fputcsv($output, $row);
+    }
+    fclose($output);
+    $conn->close();
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $temperature = isset($_GET['temperature']) ? floatval($_GET['temperature']) : null;
     $humidity = isset($_GET['humidity']) ? floatval($_GET['humidity']) : null;
