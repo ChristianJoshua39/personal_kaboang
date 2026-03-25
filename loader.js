@@ -11,7 +11,7 @@
   // Listen for a custom event from dashboard.js when everything is ready
   window.addEventListener("dashboard:ready", () => {
     loader.style.opacity = "0";
-    loader.style.transition = "opacity 0.25s ease-out";
+    loader.style.transition = "opacity 0.2s ease-out";
     setTimeout(() => {
       loader.style.display = "none";
     }, 260);

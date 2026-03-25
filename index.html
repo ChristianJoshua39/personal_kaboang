@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ESP32 Sensor Dashboard</title>
 
-  <!-- Fonts --> <!-- Styles -->
-  <link rel="stylesheet" href="style.css" />
+  <!-- Fonts & Styles -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -63,6 +64,7 @@
     <section class="stats">
 
       <div class="stat-card stat-card--temp" id="tempCard">
+        <div class="card-scan"></div>
         <div class="stat-card__badge">TEMPERATURE</div>
         <div class="stat-card__value">
           <span id="tempValue">--</span>
@@ -80,6 +82,7 @@
       </div>
 
       <div class="stat-card stat-card--hum" id="humCard">
+        <div class="card-scan"></div>
         <div class="stat-card__badge">HUMIDITY</div>
         <div class="stat-card__value">
           <span id="humValue">--</span>
@@ -97,6 +100,7 @@
       </div>
 
       <div class="stat-card stat-card--info">
+        <div class="card-scan"></div>
         <div class="stat-card__badge">READINGS</div>
         <div class="stat-card__value">
           <span id="readingCount">--</span>
