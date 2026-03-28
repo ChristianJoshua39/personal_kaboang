@@ -19,7 +19,7 @@ const CONFIG = {
   TABLE_NAME:       "sensor_readings",
 
   // ── Dashboard Behaviour ───────────────────
-  MAX_CHART_POINTS: 1000,        // Max points shown on charts
+  MAX_CHART_POINTS: 100,        // Max points shown on charts
   POLL_INTERVAL_MS: 5000,        // Fallback polling interval (ms)
   DEFAULT_RANGE:     20,         // Default chart window (number of points)
 

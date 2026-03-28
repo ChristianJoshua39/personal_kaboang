@@ -3,43 +3,731 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ESP32 Sensor Dashboard</title>
+  <title>SensorOS — ESP32 Dashboard</title>
 
-  <!-- Fonts & Styles -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@400;600;700;800&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <style>
+    /* ══════════════════════════════════════════════════════════
+       QR MODAL — CoD Tactical Style
+    ══════════════════════════════════════════════════════════ */
+    #qrModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 8000;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.88);
+      backdrop-filter: blur(16px);
+    }
+    #qrModal.open {
+      display: flex;
+      animation: modalIn 0.25s cubic-bezier(0.16,1,0.3,1);
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.92) translateY(12px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .qr-modal__box {
+      position: relative;
+      width: 310px;
+      background: rgba(10,10,12,0.97);
+      border: 1px solid rgba(212,168,32,0.40);
+      clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px));
+      box-shadow:
+        0 0 0 1px rgba(212,168,32,0.08),
+        0 0 60px rgba(212,168,32,0.12),
+        0 40px 80px rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    /* Gold sweep top bar */
+    .qr-modal__box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #d4a820, #ffe066, #d4a820, transparent);
+      background-size: 200% 100%;
+      animation: qrSweep 2.2s ease infinite;
+    }
+    @keyframes qrSweep {
+      0%   { background-position: -100% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* Top-left corner bracket */
+    .qr-modal__box::after {
+      content: '';
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 22px; height: 22px;
+      border-bottom: 2px solid rgba(212,168,32,0.40);
+      border-right: 2px solid rgba(212,168,32,0.40);
+      pointer-events: none;
+    }
+
+    /* Header bar inside modal */
+    .qr-modal__header {
+      width: 100%;
+      padding: 14px 20px 12px;
+      border-bottom: 1px solid rgba(212,168,32,0.15);
+      background: rgba(212,168,32,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .qr-modal__header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .qr-modal__eyebrow {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.46rem;
+      letter-spacing: 0.30em;
+      text-transform: uppercase;
+      color: rgba(212,168,32,0.55);
+    }
+
+    .qr-modal__title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 0.14em;
+      color: #e8dfc8;
+      text-shadow: 0 0 14px rgba(212,168,32,0.35);
+      line-height: 1;
+    }
+
+    .qr-modal__close {
+      width: 28px;
+      height: 28px;
+      background: rgba(212,168,32,0.08);
+      border: 1px solid rgba(212,168,32,0.25);
+      color: rgba(212,168,32,0.70);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.18s;
+      clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .qr-modal__close:hover {
+      background: rgba(212,168,32,0.18);
+      border-color: #d4a820;
+      color: #ffe066;
+      box-shadow: 0 0 12px rgba(212,168,32,0.30);
+    }
+
+    /* QR image frame */
+    .qr-modal__frame {
+      padding: 20px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+    }
+
+    .qr-modal__img-wrap {
+      position: relative;
+      padding: 3px;
+      background: linear-gradient(135deg, rgba(212,168,32,0.5), rgba(212,168,32,0.15), rgba(212,168,32,0.5));
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    }
+
+    .qr-modal__img {
+      display: block;
+      width: 200px;
+      height: 200px;
+      object-fit: contain;
+      background: #fff;
+      padding: 10px;
+      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+      animation: qrPulse 3s ease-in-out infinite;
+    }
+    @keyframes qrPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(212,168,32,0.2); }
+      50%       { box-shadow: 0 0 20px 4px rgba(212,168,32,0.18); }
+    }
+
+    /* Scan line animation over QR */
+    .qr-modal__scan {
+      position: absolute;
+      left: 3px; right: 3px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(212,168,32,0.8), transparent);
+      animation: scanLine 2.4s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes scanLine {
+      0%   { top: 3px; opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { top: calc(100% - 5px); opacity: 0; }
+    }
+
+    /* Footer info in modal */
+    .qr-modal__footer {
+      width: 100%;
+      padding: 10px 20px 16px;
+      border-top: 1px solid rgba(212,168,32,0.10);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .qr-modal__instruction {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.54rem;
+      letter-spacing: 0.14em;
+      color: rgba(180,160,80,0.55);
+      text-transform: uppercase;
+      text-align: center;
+      line-height: 1.7;
+    }
+
+    /* Status indicator row */
+    .qr-modal__status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .qr-modal__status-dot {
+      width: 5px; height: 5px;
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+      background: #4cde80;
+      animation: qrDotPulse 1.6s ease-in-out infinite;
+    }
+    @keyframes qrDotPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .qr-modal__status-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.46rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(76,222,128,0.60);
+    }
+
+    /* ── QR Footer Button ── */
+    .footer-qr-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(212,168,32,0.07);
+      border: 1px solid rgba(212,168,32,0.28);
+      color: #d4a820;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.56rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.16,1,0.3,1);
+      clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+      flex-shrink: 0;
+    }
+    .footer-qr-btn:hover {
+      background: rgba(212,168,32,0.16);
+      border-color: #d4a820;
+      text-shadow: 0 0 8px rgba(212,168,32,0.7);
+      box-shadow: 0 0 18px rgba(212,168,32,0.20);
+    }
+    .footer-qr-btn__thumb {
+      width: 18px; height: 18px;
+      object-fit: contain;
+      background: #fff;
+      padding: 1px;
+    }
+
+    /* ── Header Logo ── */
+    .header__logo-img {
+      width: 38px;
+      height: 38px;
+      object-fit: contain;
+      border-radius: 6px;
+      flex-shrink: 0;
+      animation: none !important;
+      filter: none !important;
+    }
+
+
+    /* ══════════════════════════════════════════════════════════
+       CALL OF DUTY — BOOT LOADER
+    ══════════════════════════════════════════════════════════ */
+    #loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      overflow: hidden;
+      padding-bottom: 52px;
+    }
+
+    /* Map background */
+    .loader__bg {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to bottom,
+          rgba(0,0,0,0.50) 0%,
+          rgba(0,0,0,0.10) 35%,
+          rgba(0,0,0,0.65) 75%,
+          rgba(0,0,0,0.95) 100%),
+        url("Image/cawds.jpg") center 30% / cover no-repeat;
+      filter: saturate(0.55) brightness(0.50);
+    }
+    /* Scanlines */
+    .loader__bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 3px,
+        rgba(0,0,0,0.10) 3px, rgba(0,0,0,0.10) 4px
+      );
+    }
+
+    /* ── CAT OPERATOR — hero left side ── */
+    .loader__operator-art {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: clamp(260px, 38vw, 520px);
+      height: auto;
+      object-fit: contain;
+      object-position: bottom left;
+      /* Ground the cat flush to the bottom */
+      display: block;
+      filter:
+        drop-shadow(0 0 30px rgba(255,120,20,0.55))
+        drop-shadow(4px 0 60px rgba(255,60,0,0.25));
+      animation: catFloat 3s ease-in-out infinite, catAura 2s ease-in-out infinite alternate;
+      z-index: 3;
+      /* Slight perspective lean */
+      transform-origin: bottom left;
+    }
+    @keyframes catFloat {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-8px); }
+    }
+    @keyframes catAura {
+      from {
+        filter: drop-shadow(0 0 25px rgba(255,100,20,0.50))
+                drop-shadow(4px 0 50px rgba(255,50,0,0.20));
+      }
+      to {
+        filter: drop-shadow(0 0 45px rgba(255,140,30,0.85))
+                drop-shadow(0 -10px 40px rgba(255,200,0,0.25))
+                drop-shadow(4px 0 70px rgba(255,60,0,0.35));
+      }
+    }
+
+    /* Operator name tag below cat */
+    .loader__op-tag {
+      position: absolute;
+      bottom: 52px;
+      left: clamp(16px, 3vw, 32px);
+      z-index: 4;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .loader__op-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.44rem;
+      letter-spacing: 0.30em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.28);
+    }
+    .loader__op-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.18em;
+      color: rgba(255,255,255,0.65);
+      text-shadow: 0 0 12px rgba(255,120,0,0.4);
+    }
+    .loader__op-rank {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.44rem;
+      letter-spacing: 0.20em;
+      color: rgba(212,168,32,0.60);
+      text-transform: uppercase;
+    }
+
+    /* ── Center title block ── */
+    .loader__center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -55%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    /* Classified stamp */
+    .loader__classified {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.52rem;
+      letter-spacing: 0.40em;
+      color: rgba(212,168,32,0.65);
+      border-top: 1px solid rgba(212,168,32,0.30);
+      border-bottom: 1px solid rgba(212,168,32,0.30);
+      padding: 3px 18px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      animation: classiFade 3s ease-in-out infinite;
+      margin-bottom: 8px;
+    }
+    @keyframes classiFade {
+      0%, 100% { opacity: 0.55; }
+      50%       { opacity: 1; }
+    }
+
+    .loader__title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3.5rem, 9vw, 7rem);
+      letter-spacing: 0.20em;
+      color: #fff;
+      line-height: 0.9;
+      text-shadow:
+        0 0 40px rgba(255,200,0,0.28),
+        0 0 80px rgba(255,120,0,0.15),
+        0 4px 30px rgba(0,0,0,0.9);
+      animation: titleReveal 1s cubic-bezier(0.16,1,0.3,1) both;
+      animation-delay: 0.2s;
+    }
+    @keyframes titleReveal {
+      from { opacity: 0; letter-spacing: 0.55em; transform: scaleX(0.85); }
+      to   { opacity: 1; letter-spacing: 0.20em; transform: scaleX(1); }
+    }
+
+    .loader__subtitle {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.38em;
+      color: rgba(212,168,32,0.65);
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    /* ── Corner brackets ── */
+    .loader__corner {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+    }
+    .loader__corner--tl { top: 20px;    left: 20px;    border-top: 1px solid rgba(212,168,32,0.5); border-left: 1px solid rgba(212,168,32,0.5); }
+    .loader__corner--tr { top: 20px;    right: 20px;   border-top: 1px solid rgba(212,168,32,0.5); border-right: 1px solid rgba(212,168,32,0.5); }
+    .loader__corner--bl { bottom: 20px; left: 20px;    border-bottom: 1px solid rgba(212,168,32,0.35); border-left: 1px solid rgba(212,168,32,0.35); }
+    .loader__corner--br { bottom: 20px; right: 20px;   border-bottom: 1px solid rgba(212,168,32,0.35); border-right: 1px solid rgba(212,168,32,0.35); }
+
+    /* Kill count decoration top-right */
+    .loader__stats-hud {
+      position: absolute;
+      top: 28px;
+      right: 28px;
+      z-index: 4;
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .loader__stats-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .loader__stats-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.44rem;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.22);
+    }
+    .loader__stats-val {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.9rem;
+      letter-spacing: 0.10em;
+      color: rgba(212,168,32,0.70);
+    }
+
+    /* ── Bottom HUD ── */
+    .loader__hud {
+      position: relative;
+      z-index: 4;
+      width: 100%;
+      max-width: 640px;
+      padding: 0 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .loader__status-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .loader__status-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.56rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+    }
+
+    .loader__status-pct {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.2rem;
+      letter-spacing: 0.08em;
+      color: rgba(212,168,32,0.95);
+      text-shadow: 0 0 12px rgba(212,168,32,0.5);
+    }
+
+    /* Progress bar */
+    .loader__bar-track {
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,0.08);
+      position: relative;
+    }
+    /* Tick marks */
+    .loader__bar-track::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent, transparent calc(10% - 1px),
+        rgba(255,255,255,0.06) calc(10% - 1px), rgba(255,255,255,0.06) 10%
+      );
+      pointer-events: none;
+    }
+
+    .loader__bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #b08800, #d4a820, #ffe066, #fffbe0);
+      box-shadow: 0 0 12px rgba(212,168,32,0.80), 0 0 28px rgba(212,168,32,0.30);
+      transform-origin: left;
+      transform: scaleX(0);
+      animation: barLoad 3s cubic-bezier(0.4,0,0.2,1) forwards;
+    }
+    @keyframes barLoad {
+      0%   { transform: scaleX(0); }
+      20%  { transform: scaleX(0.22); }
+      45%  { transform: scaleX(0.52); }
+      68%  { transform: scaleX(0.74); }
+      86%  { transform: scaleX(0.92); }
+      100% { transform: scaleX(1); }
+    }
+
+    .loader__meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1px;
+    }
+
+    .loader__meta-left {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.50rem;
+      letter-spacing: 0.18em;
+      color: rgba(255,255,255,0.22);
+      text-transform: uppercase;
+    }
+
+    .loader__tips {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.50rem;
+      letter-spacing: 0.10em;
+      color: rgba(212,168,32,0.50);
+      text-transform: uppercase;
+      text-align: right;
+      max-width: 55%;
+    }
+
+    /* ── Export Status ── */
+    .export-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .export-status {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.50rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .export-status.visible { opacity: 1; }
+    .export-status__dot {
+      width: 5px;
+      height: 5px;
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+      flex-shrink: 0;
+    }
+    .export-status--ready   { color: rgba(212,168,32,0.70); }
+    .export-status--ready   .export-status__dot { background: #d4a820; }
+    .export-status--working { color: rgba(93,184,224,0.80); animation: exportBlink 0.7s ease-in-out infinite; }
+    .export-status--working .export-status__dot { background: #5db8e0; }
+    .export-status--done    { color: rgba(76,222,128,0.80); }
+    .export-status--done    .export-status__dot { background: #4cde80; }
+    .export-status--error   { color: rgba(255,96,96,0.80); }
+    .export-status--error   .export-status__dot { background: #ff6060; }
+    @keyframes exportBlink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.35; }
+    }
+  </style>
 </head>
 
 <body>
 
- <!-- Loading overlay -->
-  <div id="loader">
-    <!-- GIF or image in the center -->
-    <img src="Image/loader.gif" alt="Loading..." class="loader__image">
+  <!-- ══ QR CODE MODAL ═══════════════════════════════════════════ -->
+  <div id="qrModal" role="dialog" aria-modal="true" aria-label="QR Code">
+    <div class="qr-modal__box">
 
-    <!-- Optional spinner behind/under the image -->
-    <div class="loader__spinner"></div>
+      <!-- Header -->
+      <div class="qr-modal__header">
+        <div class="qr-modal__header-left">
+          <span class="qr-modal__eyebrow">// Intel Package //</span>
+          <h2 class="qr-modal__title">SensorOS</h2>
+        </div>
+        <button class="qr-modal__close" id="qrModalClose" aria-label="Close">✕</button>
+      </div>
 
-    <div class="loader__text">Loading dashboard…</div>
+      <!-- QR Image with scan animation -->
+      <div class="qr-modal__frame">
+        <div class="qr-modal__img-wrap">
+          <img src="/Image/hehe.png" alt="Dashboard QR Code" class="qr-modal__img" />
+          <div class="qr-modal__scan"></div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="qr-modal__footer">
+        <p class="qr-modal__instruction">
+          Point your camera at the code<br>to open this dashboard on any device
+        </p>
+        <div class="qr-modal__status">
+          <div class="qr-modal__status-dot"></div>
+          <span class="qr-modal__status-text">Uplink Active</span>
+        </div>
+      </div>
+
+    </div>
   </div>
-  <!-- Rain effect canvas -->
+
+  <!-- ══ CALL OF DUTY — LOADING SCREEN ═══════════════════════════ -->
+  <div id="loader">
+
+    <!-- Map background -->
+    <div class="loader__bg"></div>
+
+    <!-- Corner HUD brackets -->
+    <div class="loader__corner loader__corner--tl"></div>
+    <div class="loader__corner loader__corner--tr"></div>
+    <div class="loader__corner loader__corner--bl"></div>
+    <div class="loader__corner loader__corner--br"></div>
+
+    <!-- Top-right stats HUD -->
+    <div class="loader__stats-hud">
+      <div class="loader__stats-row">
+        <span class="loader__stats-label">Platform</span>
+        <span class="loader__stats-val">ESP32</span>
+      </div>
+      <div class="loader__stats-row">
+        <span class="loader__stats-label">Sensor</span>
+        <span class="loader__stats-val">DHT11</span>
+      </div>
+      <div class="loader__stats-row">
+        <span class="loader__stats-label">Uplink</span>
+        <span class="loader__stats-val">Supabase</span>
+      </div>
+    </div>
+
+    <!-- Center title -->
+    <div class="loader__center">
+      <div class="loader__classified">// CLASSIFIED — INTEL INCOMING //</div>
+      <div class="loader__title">SensorOS</div>
+      <div class="loader__subtitle">ESP32 · DHT11 · Supabase Uplink</div>
+    </div>
+
+    <!-- 🐱 CAT OPERATOR — the star of the show --
+    <img
+      src="/Image/cat-loading.gif"
+      alt="Operator"
+      class="loader__operator-art"
+    />
+
+    <!-- Operator name tag -->
+    <div class="loader__op-tag">
+      <span class="loader__op-label">Operator</span>
+      <span class="loader__op-name">C. TULOD</span>
+      <span class="loader__op-rank">// Legendary · Armed &amp; Dangerous //</span>
+    </div>
+
+    <!-- Bottom HUD bar -->
+    <div class="loader__hud">
+      <div class="loader__status-line">
+        <span class="loader__status-text" id="loaderStatusText">INITIALIZING SYSTEMS…</span>
+        <span class="loader__status-pct" id="loaderPct">0%</span>
+      </div>
+      <div class="loader__bar-track">
+        <div class="loader__bar-fill" id="loaderBar"></div>
+      </div>
+      <div class="loader__meta">
+        <span class="loader__meta-left">SensorOS v2.0 · ESP32 Platform</span>
+        <span class="loader__tips" id="loaderTip">CONNECTING TO SUPABASE UPLINK</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Rain canvas -->
   <canvas id="rainCanvas"></canvas>
 
-  <!-- Header -->
+  <!-- ══ HEADER ════════════════════════════════════════════════════ -->
   <header class="header">
     <div class="header__brand">
-      <span class="header__icon">💧_🔥</span>
+      <!-- Crystal "A" logo — shown at proper size with neon glow -->
+      <img src="/Image/cat-loading.gif" alt="SensorOS Logo" class="header__logo-img" />
       <div>
-        <h1 class="header__title">Sensor</h1>
+        <h1 class="header__title">SensorOS</h1>
         <p class="header__sub">ESP32 · DHT11 · Supabase</p>
       </div>
     </div>
@@ -47,24 +735,23 @@
       <span class="status-dot" id="statusDot"></span>
       <span class="status-label" id="statusLabel">Connecting…</span>
       <div class="header__time" id="headerTime">--:--:--</div>
+
     </div>
   </header>
 
-    <!-- Page title under navbar -->
+  <!-- ══ PAGE TITLE ════════════════════════════════════════════════ -->
   <section class="page-title">
     <h1>Temperature &amp; Humidity</h1>
     <p>BY</p>
     <p>Christian Joshua A. Tulod</p>
   </section>
 
-    
-  <!-- Main content -->
+  <!-- ══ MAIN CONTENT ══════════════════════════════════════════════ -->
   <main class="main">
-    <!-- Stat cards row -->
+
     <section class="stats">
 
       <div class="stat-card stat-card--temp" id="tempCard">
-        <div class="card-scan"></div>
         <div class="stat-card__badge">TEMPERATURE</div>
         <div class="stat-card__value">
           <span id="tempValue">--</span>
@@ -76,13 +763,10 @@
           <span>⌀ Avg: <strong id="tempAvg">--</strong>°C</span>
         </div>
         <div class="stat-card__status" id="tempStatus">—</div>
-        <div class="stat-card__sparkline">
-          <canvas id="tempSparkline"></canvas>
-        </div>
+        <div class="stat-card__sparkline"><canvas id="tempSparkline"></canvas></div>
       </div>
 
       <div class="stat-card stat-card--hum" id="humCard">
-        <div class="card-scan"></div>
         <div class="stat-card__badge">HUMIDITY</div>
         <div class="stat-card__value">
           <span id="humValue">--</span>
@@ -94,13 +778,10 @@
           <span>⌀ Avg: <strong id="humAvg">--</strong>%</span>
         </div>
         <div class="stat-card__status" id="humStatus">—</div>
-        <div class="stat-card__sparkline">
-          <canvas id="humSparkline"></canvas>
-        </div>
+        <div class="stat-card__sparkline"><canvas id="humSparkline"></canvas></div>
       </div>
 
       <div class="stat-card stat-card--info">
-        <div class="card-scan"></div>
         <div class="stat-card__badge">READINGS</div>
         <div class="stat-card__value">
           <span id="readingCount">--</span>
@@ -119,9 +800,7 @@
 
     </section>
 
-    <!-- Charts -->
     <section class="charts">
-
       <div class="chart-card" id="tempChartCard">
         <div class="chart-card__header">
           <div>
@@ -134,9 +813,7 @@
             <button class="range-btn" data-range="100" data-target="temp">100</button>
           </div>
         </div>
-        <div class="chart-wrapper">
-          <canvas id="tempChart"></canvas>
-        </div>
+        <div class="chart-wrapper"><canvas id="tempChart"></canvas></div>
       </div>
 
       <div class="chart-card" id="humChartCard">
@@ -151,14 +828,10 @@
             <button class="range-btn" data-range="100" data-target="hum">100</button>
           </div>
         </div>
-        <div class="chart-wrapper">
-          <canvas id="humChart"></canvas>
-        </div>
+        <div class="chart-wrapper"><canvas id="humChart"></canvas></div>
       </div>
-
     </section>
 
-    <!-- Dual-axis combo chart -->
     <section class="charts charts--single">
       <div class="chart-card chart-card--combo">
         <div class="chart-card__header">
@@ -171,18 +844,21 @@
             <span class="legend-dot legend-dot--hum"></span><span>Humidity</span>
           </div>
         </div>
-        <div class="chart-wrapper chart-wrapper--tall">
-          <canvas id="comboChart"></canvas>
-        </div>
+        <div class="chart-wrapper chart-wrapper--tall"><canvas id="comboChart"></canvas></div>
       </div>
     </section>
 
-    <!-- Log table -->
     <section class="log-section">
       <div class="log-card">
         <div class="log-card__header">
           <h2 class="chart-card__title">Recent Readings</h2>
-          <button class="export-btn" id="exportBtn">⬇ Export CSV</button>
+          <div class="export-wrap">
+            <span class="export-status export-status--ready visible" id="exportStatus">
+              <span class="export-status__dot"></span>
+              <span id="exportStatusText">Ready</span>
+            </span>
+            <button class="export-btn" id="exportBtn">⬇ Export CSV</button>
+          </div>
         </div>
         <div class="table-wrapper">
           <table class="log-table">
@@ -206,19 +882,174 @@
 
   </main>
 
-  <!-- Footer -->
+  <!-- ══ FOOTER ════════════════════════════════════════════════════ -->
   <footer class="footer">
     <span>SensorOS Dashboard · ESP32 + DHT11 + Supabase</span>
     <span id="footerReadings">0 total readings</span>
+    <button class="footer-qr-btn" id="qrBtn" title="View dashboard QR code">
+      <img src="/Image/hehe.png" alt="QR" class="footer-qr-btn__thumb" />
+      SCAN QR
+    </button>
   </footer>
 
-  <!-- Scripts -->
-  <script src="/Image/rain.js"></script>    
+  <!-- ══ SCRIPTS ════════════════════════════════════════════════════ -->
+  <script src="/Image/rain.js"></script>
   <script src="config.js"></script>
+  <script src="auth-guard.js"></script>
   <script src="supabase.js"></script>
   <script src="charts.js"></script>
   <script src="dashboard.js"></script>
-   <script src="loader.js"></script>
+  <script src="loader.js"></script>
+
+  <!-- CoD Loader HUD animation — synced with loader.js / dashboard:ready -->
+  <script>
+    (function () {
+      const tips = [
+        'CONNECTING TO SUPABASE UPLINK',
+        'CALIBRATING DHT11 SENSORS',
+        'ACQUIRING SATELLITE LOCK',
+        'DECRYPTING THERMAL DATA',
+        'ARMING CHART MODULES',
+        'OPERATOR STANDING BY',
+      ];
+      const phases = [
+        'INITIALIZING SYSTEMS…',
+        'LOADING SENSOR MODULES…',
+        'ESTABLISHING UPLINK…',
+        'SYNCHRONIZING DATABASE…',
+        'RENDERING DASHBOARD…',
+        'ARMED & READY',
+      ];
+      const pcts = [0, 18, 40, 62, 84, 98];
+
+      const tipEl  = document.getElementById('loaderTip');
+      const pctEl  = document.getElementById('loaderPct');
+      const statEl = document.getElementById('loaderStatusText');
+      const barEl  = document.getElementById('loaderBar');
+
+      // Animate the HUD text phases on a timer
+      let step = 0;
+      const tick = setInterval(() => {
+        if (step >= phases.length) { clearInterval(tick); return; }
+        statEl.textContent = phases[step];
+        pctEl.textContent  = pcts[step] + '%';
+        tipEl.textContent  = tips[step % tips.length];
+        step++;
+      }, 440);
+
+      // When dashboard.js fires dashboard:ready — snap to 100% then let loader.js hide it
+      window.addEventListener('dashboard:ready', () => {
+        clearInterval(tick);
+        statEl.textContent = 'SYSTEMS ONLINE';
+        pctEl.textContent  = '100%';
+        tipEl.textContent  = 'UPLINK ESTABLISHED';
+
+        // Instantly complete the bar
+        if (barEl) {
+          barEl.style.animation = 'none';
+          barEl.style.transform = 'scaleX(1)';
+        }
+        // loader.js takes over from here and fades the overlay out
+      });
+    })();
+  </script>
+
+  <!-- QR Modal -->
+  <script>
+    (function () {
+      const modal    = document.getElementById('qrModal');
+      const openBtn  = document.getElementById('qrBtn');
+      const closeBtn = document.getElementById('qrModalClose');
+      const open  = () => { modal.classList.add('open');  document.body.style.overflow = 'hidden'; };
+      const close = () => { modal.classList.remove('open'); document.body.style.overflow = ''; };
+      openBtn.addEventListener('click', open);
+      closeBtn.addEventListener('click', close);
+      modal.addEventListener('click', e => { if (e.target === modal) close(); });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    })();
+  </script>
+
+  <!-- ══ EXPORT CSV — reads directly from the log table ══ -->
+  <script>
+    (function () {
+      const btn       = document.getElementById('exportBtn');
+      const statusEl  = document.getElementById('exportStatus');
+      const statusTxt = document.getElementById('exportStatusText');
+      if (!btn) return;
+
+      function setStatus(state, text) {
+        statusEl.className = 'export-status visible export-status--' + state;
+        statusTxt.textContent = text;
+      }
+
+      btn.addEventListener('click', function () {
+        setStatus('working', 'Exporting…');
+        btn.disabled = true;
+
+        setTimeout(function () {
+          try {
+            // Collect rows from the live table
+            const rows = document.querySelectorAll('#logTableBody tr:not(.log-empty)');
+
+            if (rows.length === 0) {
+              setStatus('error', 'No data');
+              btn.disabled = false;
+              setTimeout(() => setStatus('ready', 'Ready'), 2800);
+              return;
+            }
+
+            // Build CSV — exact columns matching the table headers
+            const headers = ['#', 'Timestamp', 'Temperature (°C)', 'Humidity (%)', 'Heat Index', 'Status'];
+            const csvLines = [headers.join(',')];
+
+            rows.forEach(function (row) {
+              const cells = row.querySelectorAll('td');
+              if (cells.length < 6) return;
+
+              // Strip any HTML badges — get plain text only
+              const rowData = Array.from(cells).map(function (td) {
+                const text = (td.innerText || td.textContent || '').trim().replace(/,/g, ';');
+                return '"' + text + '"';
+              });
+              csvLines.push(rowData.join(','));
+            });
+
+            const csvContent = csvLines.join('\r\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url  = URL.createObjectURL(blob);
+
+            // Timestamp the filename
+            const now = new Date();
+            const ts  = now.getFullYear() + '-'
+                      + String(now.getMonth() + 1).padStart(2,'0') + '-'
+                      + String(now.getDate()).padStart(2,'0') + '_'
+                      + String(now.getHours()).padStart(2,'0')
+                      + String(now.getMinutes()).padStart(2,'0');
+            const filename = 'SensorOS_' + ts + '.csv';
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            setStatus('done', rows.length + ' rows exported');
+            btn.disabled = false;
+            setTimeout(() => setStatus('ready', 'Ready'), 3500);
+
+          } catch (err) {
+            console.error('CSV export error:', err);
+            setStatus('error', 'Export failed');
+            btn.disabled = false;
+            setTimeout(() => setStatus('ready', 'Ready'), 3000);
+          }
+        }, 200);
+      });
+    })();
+  </script>
+
 
 
 </body>
